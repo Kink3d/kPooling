@@ -8,5 +8,10 @@ kPooling is an object pooling system for Unity. It is based on a flexible generi
 
 Refer to the [Wiki](https://github.com/Kink3d/kPooling/wiki/Home) for more information.
 
+## Instructions
+- Open your project manifest file (`MyProject/Packages/manifest.json`).
+- Add `"com.kink3d.pooling": "https://github.com/Kink3d/kPooling.git"` to the `dependencies` list.
+- Open or focus on Unity Editor to resolve packages.
+
 ## Requirements
-- Unity 2019.3.0f3 or higher
+- Unity 2019.3.0f3 or higher.
