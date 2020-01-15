@@ -1,6 +1,5 @@
 using System;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace kTools.Pooling
 {
@@ -22,24 +21,26 @@ namespace kTools.Pooling
 #endregion
     }
 
-    sealed class Pool<T> : Pool, IDisposable where T : Object
+    sealed class Pool<T> : Pool, IDisposable
     {
 #region Fields
-        readonly T m_BaseInstance;
+        readonly T m_Source;
         readonly Instance<T>[] m_Instances;
+        readonly Processor<T> m_Processor;
 #endregion
 
 #region Constructors
-        public Pool(object key, T baseInstance, int instanceCount) : base(key)
+        public Pool(object key, T source, int instanceCount, Processor<T> processor) : base(key)
         {
             // Set data
-            m_BaseInstance = baseInstance;
+            m_Source = source;
             m_Instances = new Instance<T>[instanceCount];
+            m_Processor = processor;
 
             // Create instances
             for(int i = 0; i < instanceCount; i++)
             {
-                var obj = Activator.CreateInstance<T>();
+                var obj = processor.CreateInstance(key, source);
                 var instance = new Instance<T>(obj);
                 instances[i] = instance;
             }
@@ -47,8 +48,9 @@ namespace kTools.Pooling
 #endregion
 
 #region Properties
-        public T baseInstance => m_BaseInstance;
+        public T source => m_Source;
         public Instance<T>[] instances => m_Instances;
+        public Processor<T> processor => m_Processor;
 #endregion
 
 #region IDisposable
@@ -58,11 +60,7 @@ namespace kTools.Pooling
             var instanceCount = instances.Length;
             for(int i = 0; i < instanceCount; i++)
             {
-                #if UNITY_EDITOR
-                Object.DestroyImmediate(instances[i].obj);
-                #else
-                Object.Destroy(instances[i].obj);
-                #endif
+                processor.DestroyInstance(key, instances[i].obj);
             }
         }
 #endregion
@@ -109,6 +107,7 @@ namespace kTools.Pooling
             
             // Enable instance
             value.SetActive(true);
+            processor.OnEnableInstance(key, value.obj);
             return value.obj;
         }
 
@@ -121,6 +120,7 @@ namespace kTools.Pooling
                 {
                     // Disable instance
                     instance.SetActive(false);
+                    processor.OnDisableInstance(key, instance.obj);
                     return;
                 }
             }
@@ -129,5 +129,5 @@ namespace kTools.Pooling
             Debug.LogWarning($"Pool ({key}) does not contain object ({value}).");
         }
 #endregion
-    } 
+    }
 }

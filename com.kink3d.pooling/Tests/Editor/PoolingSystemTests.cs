@@ -4,7 +4,7 @@ using UnityEngine.TestTools;
 
 namespace kTools.Pooling.Editor.Tests
 {
-    public class PoolingSystemTests
+    public sealed class PoolingSystemTests
     {
 #region Fields
         readonly GameObject m_Key;
@@ -81,6 +81,8 @@ namespace kTools.Pooling.Editor.Tests
             // Execution
             PoolingSystem.TryGetInstance(m_Key, out instance);
             PoolingSystem.ReturnInstance(m_Key, instance);
+
+            // Result
             LogAssert.NoUnexpectedReceived();
         }
 #endregion

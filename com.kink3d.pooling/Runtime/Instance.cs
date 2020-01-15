@@ -2,7 +2,7 @@ using UnityEngine;
 
 namespace kTools.Pooling
 {
-    sealed class Instance<T> where T : Object
+    sealed class Instance<T>
     {
 #region Fields
         readonly T m_Obj;

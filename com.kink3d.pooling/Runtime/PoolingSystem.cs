@@ -1,6 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using UnityEngine;
-using Object = UnityEngine.Object;
 
 namespace kTools.Pooling
 {
@@ -8,6 +8,7 @@ namespace kTools.Pooling
     {
 #region Fields
         readonly static List<Pool> s_Pools;
+        readonly static List<Processor> s_Processors;
 #endregion
 
 #region Constructors
@@ -15,6 +16,8 @@ namespace kTools.Pooling
         {
             // Create data
             s_Pools = new List<Pool>();
+            s_Processors = new List<Processor>();
+            GatherProcessors();
         }
 #endregion
 
@@ -22,7 +25,7 @@ namespace kTools.Pooling
         /// <summary>Tests for existing Pool of type T with given key.</summary> 
         /// <param name="key">Unique identifer for Pool.</param>
         /// <returns>True if Pool exists.</returns> 
-        public static bool HasPool<T>(object key) where T : Object
+        public static bool HasPool<T>(object key)
         {
             // Test argument validity
             if(key == null)
@@ -38,9 +41,9 @@ namespace kTools.Pooling
         
         /// <summary>Creates a new Pool of type T.</summary> 
         /// <param name="key">Unique identifer for Pool.</param>
-        /// <param name="baseInstance">The Object to base instances from.</param>
+        /// <param name="source">The object to base instances from.</param>
         /// <param name="instanceCount">Amount of instances to create.</param>
-        public static void CreatePool<T>(object key, T baseInstance, int instanceCount) where T : Object
+        public static void CreatePool<T>(object key, T source, int instanceCount)
         {
             // Test argument validity
             if(key == null)
@@ -48,9 +51,9 @@ namespace kTools.Pooling
                 Debug.LogWarning("Key cannot be null.");
                 return;
             }
-            if(baseInstance == null)
+            if(source == null)
             {
-                Debug.LogWarning("BaseInstance cannot be null.");
+                Debug.LogWarning("Source cannot be null.");
                 return;
             }
             if(instanceCount < 1)
@@ -66,14 +69,22 @@ namespace kTools.Pooling
                 return;
             }
 
+            // Get Processor for T
+            Processor<T> processor;
+            if(!TryGetProcessor(out processor))
+            {
+                Debug.LogWarning($"No processor found for Type ({typeof(T)}).");
+                return;
+            }
+
             // Create Pool
-            var pool = new Pool<T>(key, baseInstance, instanceCount);
+            var pool = new Pool<T>(key, source, instanceCount, processor);
             s_Pools.Add(pool);
         }
 
         /// <summary>Destroys existing Pool of type T with given key.</summary> 
         /// <param name="key">Unique identifer for Pool.</param>
-        public static void DestroyPool<T>(object key) where T : Object
+        public static void DestroyPool<T>(object key)
         {
             // Test argument validity
             if(key == null)
@@ -88,10 +99,15 @@ namespace kTools.Pooling
             {
                 // Remove Pool
                 s_Pools.Remove(pool);
-            }            
+                pool.Dispose();
+                return;
+            }
+
+            // No Pool found
+            Debug.LogWarning($"Pool does not exist with key ({key}).");      
         }
 
-        static bool TryGetPool<T>(object key, out Pool<T> value) where T : Object
+        static bool TryGetPool<T>(object key, out Pool<T> value)
         {
             foreach(var pool in s_Pools)
             {
@@ -122,13 +138,13 @@ namespace kTools.Pooling
         /// <param name="key">Unique identifer for Pool.</param>
         /// <param name="value">Returned instance.</param>
         /// <returns>True if returned instance is not null.</returns> 
-        public static bool TryGetInstance<T>(object key, out T value) where T : Object
+        public static bool TryGetInstance<T>(object key, out T value)
         {
             // Test argument validity
             if(key == null)
             {
                 Debug.LogWarning("Key cannot be null.");
-                value = null;
+                value = default(T);
                 return false;
             }
 
@@ -142,14 +158,14 @@ namespace kTools.Pooling
             }
             
             // Pool not found
-            value = null;
+            value = default(T);
             return false;
         }
 
         /// <summary>Returns an Instance of type T to Pool with given key.</summary> 
         /// <param name="key">Unique identifer for Pool.</param>
         /// <param name="instance">Instance to return.</param>
-        public static void ReturnInstance<T>(object key, T instance) where T : Object
+        public static void ReturnInstance<T>(object key, T instance)
         {
             // Test argument validity
             if(key == null)
@@ -170,6 +186,47 @@ namespace kTools.Pooling
                 // Return instance
                 pool.ReturnInstance(instance);
             }
+        }
+#endregion
+
+#region Processors
+        static void GatherProcessors()
+        {
+            // Avoid redundant execution
+            if(s_Processors.Count != 0)
+                return;
+
+            // Search all Assemblies for Processors
+            foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
+            {
+                foreach (var type in assembly.GetTypes())
+                {
+                    if (type.IsClass && !type.IsAbstract && type.IsSubclassOf(typeof(Processor)))
+                    {
+                        // Add to Processor list
+                        var processor = (Processor)Activator.CreateInstance(type);
+                        s_Processors.Add(processor);
+                    }
+                }
+            }
+        }
+
+        static bool TryGetProcessor<T>(out Processor<T> value)
+        {
+            // Find Processor of matching type T
+            foreach(var processor in s_Processors)
+            {
+                if(processor is Processor<T> typedProcessor)
+                {
+                    // Processor found
+                    value = typedProcessor;
+                    return true;
+                }
+            }
+
+            // No Processor found
+            value = null;
+            return false;
         }
 #endregion
     }
