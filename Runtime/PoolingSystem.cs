@@ -22,6 +22,12 @@ namespace kTools.Pooling
 #endregion
 
 #region Pool
+        [RuntimeInitializeOnLoadMethod]
+        private static void ClearPoolsOnLoad()
+        {
+            s_Pools.Clear();
+        }
+    
         /// <summary>Tests for existing Pool of type T with given key.</summary> 
         /// <param name="key">Unique identifer for Pool.</param>
         /// <returns>True if Pool exists.</returns> 
