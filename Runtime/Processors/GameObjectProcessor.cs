@@ -22,7 +22,7 @@ namespace kTools.Pooling
         [RuntimeInitializeOnLoadMethod]
         private static void ClearContainers()
         {
-            m_Containers.Clear();
+            m_Containers?.Clear();
         }
 
         public override GameObject CreateInstance(object key, GameObject source)
