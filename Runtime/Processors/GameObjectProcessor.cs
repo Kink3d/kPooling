@@ -6,7 +6,7 @@ namespace kTools.Pooling
     public sealed class GameObjectProcessor : Processor<GameObject>
     {
 #region Fields
-        Dictionary<object, Transform> m_Containers;
+        static Dictionary<object, Transform> m_Containers;
 #endregion
 
 #region Constructors
@@ -18,6 +18,13 @@ namespace kTools.Pooling
 #endregion
 
 #region Overrides
+
+        [RuntimeInitializeOnLoadMethod]
+        private static void ClearContainers()
+        {
+            m_Containers?.Clear();
+        }
+
         public override GameObject CreateInstance(object key, GameObject source)
         {
             // Find container Transform matching key
